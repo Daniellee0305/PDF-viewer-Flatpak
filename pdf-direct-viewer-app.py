@@ -6,7 +6,7 @@ import gi
 
 gi.require_version('Gtk', '3.0')
 gi.require_version('WebKit2', '4.1') # Using 4.1 for modern GNOME runtimes
-from gi.repository import Gtk, WebKit2, GLib, Gio, Pango
+from gi.repository import Gtk, WebKit2, GLib, Gio, Pango, Gdk
 import threading
 import http.server
 import socketserver
@@ -106,6 +106,19 @@ class DoqmentViewer(Gtk.ApplicationWindow):
         else:
             # If launched without a file, just open an empty tab
             self.add_tab(None)
+
+        # Drag and Drop support
+        TARGET_ENTRY_URI_LIST = Gtk.TargetEntry.new("text/uri-list", 0, 0)
+        self.drag_dest_set(Gtk.DestDefaults.ALL, [TARGET_ENTRY_URI_LIST], Gdk.DragAction.COPY)
+        self.connect("drag-data-received", self.on_drag_data_received)
+
+    def on_drag_data_received(self, widget, drag_context, x, y, data, info, time):
+        uris = data.get_uris()
+        for uri in uris:
+            if uri.startswith("file://"):
+                pdf_path = urllib.parse.unquote(uri[7:])
+                self.add_tab(pdf_path)
+        Gtk.drag_finish(drag_context, True, False, time)
 
     def get_current_webview(self):
         page_num = self.notebook.get_current_page()
