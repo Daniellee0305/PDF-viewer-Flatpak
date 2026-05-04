@@ -1,53 +1,55 @@
 # PDF Direct Viewer
 
-PDF Direct Viewer is a high-performance, native PDF reader designed specifically for the Linux desktop. Developed by **Daniel Lee**, it focuses on speed, security, and a premium reading experience with built-in native Dark Mode support.
+A high-performance, native Linux PDF reader powered by **Mozilla's PDF.js** engine — the same rendering engine used in Firefox.
 
-Unlike traditional wrappers, PDF Direct Viewer is built on top of the industry-standard **Poppler** rendering engine, ensuring 100% compatibility with the PDF specification while maintaining a minimal resource footprint.
+Developed by **Daniel Lee**.
 
-## 🚀 Features
+## ✨ Features
 
-- **⚡ Native Performance:** Powered by the Poppler C++ engine (via PyGObject), providing near-instant page rendering and smooth scrolling.
-- **🌙 Native Reader Mode:** A high-quality, eye-friendly Dark Mode implemented at the GPU level using Cairo, allowing for comfortable night-time reading without flickering.
-- **📑 Multi-Tab Interface:** Efficiently manage multiple documents with a Firefox-inspired tabbed interface.
-- **🎨 Modern GTK3 Design:** Seamlessly integrates with the GNOME desktop using a clean HeaderBar and native icons.
-- **📂 Drag & Drop Support:** Open files instantly by dragging them into the application window.
-- **🔒 Flatpak Security:** Fully sandboxed using Flatpak technology, ensuring your system remains secure while viewing untrusted documents.
+- **🔥 Firefox PDF Engine:** Uses Mozilla's open-source [PDF.js](https://github.com/nicbarker/pdfjs-dist) to render documents, giving you the exact same quality and feature set as Firefox's built-in PDF viewer — including full-text search, outline/bookmarks sidebar, thumbnails, zoom, and print.
+- **🎨 9-Color Reader Palette:** Choose from 9 carefully curated color themes (Original, Dark, Sepia, Night Green, Ocean Blue, High Contrast, Rose, Slate, Cream) via a one-click popover in the title bar.
+- **📑 Multi-Tab Interface:** Open multiple PDFs in tabs, just like a browser. Each tab runs independently.
+- **📂 Drag & Drop:** Drop PDF files directly onto the window to open them in new tabs.
+- **🖥️ Native Desktop Integration:** Double-click any PDF in your file manager to open it in PDF Direct Viewer.
+- **🔒 Sandboxed Security:** Fully sandboxed via Flatpak. A local `127.0.0.1` HTTP micro-server securely bridges the gap between local files and the WebKit renderer — no data ever leaves your machine.
 
 ## 🛠️ Technology Stack
 
-- **Language:** Python 3
-- **GUI Toolkit:** GTK 3 (via PyGObject)
-- **Rendering Engine:** [Poppler](https://poppler.freedesktop.org/)
-- **Graphics Library:** [Cairo](https://www.cairographics.org/)
-- **Packaging:** Flatpak (GNOME 45+ Runtime)
+| Component         | Technology                                                                 |
+|--------------------|---------------------------------------------------------------------------|
+| Language           | Python 3                                                                  |
+| GUI Toolkit        | GTK 3 (via [PyGObject](https://pygobject.readthedocs.io/))               |
+| Web Engine         | [WebKit2GTK](https://webkitgtk.org/) 4.1                                 |
+| PDF Rendering      | [Mozilla PDF.js](https://mozilla.github.io/pdf.js/) (Apache 2.0 License) |
+| Graphics / Theming | CSS Filters injected at runtime via JavaScript                            |
+| Packaging          | Flatpak (GNOME Platform 50)                                              |
 
-## 🏗️ Installation (Local Build)
-
-To build and run the application locally using Flatpak Builder:
+## 🏗️ Build & Run (Flatpak)
 
 ```bash
-# Clone the repository
+# Clone the build recipe
 git clone https://github.com/Daniellee0305/PDF-direct-viewer.git
-cd PDF-direct-viewer
 
 # Build the Flatpak
+cd PDF-direct-viewer
 flatpak-builder --user --install --force-clean build-dir io.github.daniellee0305.PdfDirectViewer.yml
 
-# Run the application
+# Run
 flatpak run io.github.daniellee0305.PdfDirectViewer
 ```
 
-## 📜 Acknowledgements
+## 📜 Acknowledgements & Open-Source Credits
 
-This project is maintained by **Daniel Lee**. 
+This project gratefully builds upon the following open-source projects:
 
-It stands on the shoulders of giants in the open-source community:
-- **Poppler Project:** For the world-class PDF rendering engine.
-- **GNOME Project:** For the GTK toolkit and the GNOME SDK.
-- **Cairo:** For the advanced 2D graphics API used for our Reader Mode.
-
-*Note: This project was originally inspired by the "doqment" browser extension, but has since been completely rewritten as a native desktop application to provide better performance and a more integrated experience.*
+| Project | License | Usage |
+|---------|---------|-------|
+| [Mozilla PDF.js](https://github.com/nicbarker/pdfjs-dist) | Apache 2.0 | Core PDF rendering engine |
+| [pdfjs-generic](https://github.com/shivaprsd/pdfjs-generic) by Shiva Prasad | Apache 2.0 | Pre-built generic viewer distribution |
+| [GTK](https://www.gtk.org/) | LGPL | Native desktop UI toolkit |
+| [WebKit2GTK](https://webkitgtk.org/) | LGPL/BSD | Web content engine for rendering PDF.js |
+| [PyGObject](https://pygobject.readthedocs.io/) | LGPL | Python bindings for GTK/GLib |
 
 ## ⚖️ License
 
-Distributed under the MIT License. See `LICENSE` for more information.
+Distributed under the MIT License. See [LICENSE](LICENSE) for details.
