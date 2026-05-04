@@ -127,8 +127,15 @@ class DoqmentViewer(Gtk.ApplicationWindow):
     def on_load_changed(self, webview, event):
         # Open PDF via JS to bypass URL parsing/CORS issues in newer PDF.js
         if event == WebKit2.LoadEvent.FINISHED and self.current_pdf_path:
-            safe_path = self.current_pdf_path.replace("'", "\\'")
-            js = f"if(window.PDFViewerApplication) PDFViewerApplication.open({{ url: 'file://{safe_path}' }});"
+            import urllib.parse
+            encoded_path = urllib.parse.quote(os.path.abspath(self.current_pdf_path))
+            js = f"""
+            setTimeout(function() {{
+                if(window.PDFViewerApplication) {{
+                    PDFViewerApplication.open({{ url: 'file://{encoded_path}' }});
+                }}
+            }}, 500);
+            """
             self.webview.run_javascript(js, None, None, None)
 
     # 3. Actions interacting with PDF.js via JS
