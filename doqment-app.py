@@ -63,7 +63,6 @@ class DoqmentViewer(Gtk.ApplicationWindow):
         settings.set_enable_developer_extras(False)
         
         # We can inject CSS to hide the ugly web PDF.js toolbar to make it look completely native!
-        # This fulfills the "design the interface yourself" requirement
         hide_toolbar_script = WebKit2.UserScript(
             "document.head.insertAdjacentHTML('beforeend', '<style>#toolbarContainer { display: none !important; } #viewerContainer { top: 0 !important; }</style>');",
             WebKit2.UserContentInjectedFrames.ALL_FRAMES,
@@ -109,7 +108,8 @@ class DoqmentViewer(Gtk.ApplicationWindow):
 
 class DoqmentApp(Gtk.Application):
     def __init__(self):
-        super().__init__(application_id="io.github.daniel.doqment", flags=Gio.ApplicationFlags.HANDLES_OPEN)
+        # App ID updated to Daniellee0305
+        super().__init__(application_id="io.github.daniellee0305.doqment", flags=Gio.ApplicationFlags.HANDLES_OPEN)
         self.window = None
 
     def do_activate(self):

@@ -1,0 +1,32 @@
+app-id: io.github.daniellee0305.doqment
+runtime: org.gnome.Platform
+runtime-version: '46'
+sdk: org.gnome.Sdk
+command: doqment-app.py
+finish-args:
+  - --share=ipc
+  - --socket=fallback-x11
+  - --socket=wayland
+  - --device=dri
+  - --share=network
+  - --filesystem=host
+modules:
+  - name: doqment
+    buildsystem: simple
+    build-commands:
+      - install -Dm755 doqment-app.py /app/bin/doqment-app.py
+      - mkdir -p /app/share/doqment
+      - cp -r doqment/* /app/share/doqment/
+      - install -Dm644 io.github.daniellee0305.doqment.desktop -t /app/share/applications/
+      - install -Dm644 io.github.daniellee0305.doqment.metainfo.xml -t /app/share/metainfo/
+      - install -Dm644 doqment/src/images/icon128.png /app/share/icons/hicolor/128x128/apps/io.github.daniellee0305.doqment.png
+      - install -Dm644 doqment/src/images/icon48.png /app/share/icons/hicolor/48x48/apps/io.github.daniellee0305.doqment.png
+      - install -Dm644 doqment/src/images/icon32.png /app/share/icons/hicolor/32x32/apps/io.github.daniellee0305.doqment.png
+      - install -Dm644 doqment/src/images/icon16.png /app/share/icons/hicolor/16x16/apps/io.github.daniellee0305.doqment.png
+    sources:
+      # For Flathub publishing, change type: dir to type: git and use your GitHub repo URL:
+      # - type: git
+      #   url: https://github.com/Daniellee0305/PDF-viewer-Flatpak.git
+      #   branch: main
+      - type: dir
+        path: .
