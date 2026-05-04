@@ -10,6 +10,7 @@ finish-args:
   - --device=dri
   - --share=network
   - --filesystem=host
+  - --env=WEBKIT_DISABLE_DMABUF_RENDERER=1
 modules:
   - name: doqment
     buildsystem: simple
