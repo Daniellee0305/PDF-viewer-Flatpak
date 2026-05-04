@@ -178,7 +178,7 @@ class DoqmentViewer(Gtk.ApplicationWindow):
 class DoqmentApp(Gtk.Application):
     def __init__(self):
         # App ID updated to Daniellee0305
-        super().__init__(application_id="io.github.daniellee0305.doqment", flags=Gio.ApplicationFlags.HANDLES_OPEN)
+        super().__init__(application_id="io.github.daniellee0305.PdfDirectViewer", flags=Gio.ApplicationFlags.HANDLES_OPEN)
         self.window = None
 
     def do_activate(self):
