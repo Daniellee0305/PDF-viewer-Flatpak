@@ -88,7 +88,20 @@ class DoqmentViewer(Gtk.ApplicationWindow):
         settings = self.webview.get_settings()
         settings.set_allow_file_access_from_file_urls(True)
         settings.set_allow_universal_access_from_file_urls(True)
-        settings.set_enable_developer_extras(False)
+        settings.set_enable_developer_extras(True) # Enabled for debugging
+        
+        # Inject doqment extension modules into the viewer
+        doq_inject_script = WebKit2.UserScript(
+            "import('file:///app/share/doqment/src/doq/addon/doq.js').catch(e => console.error('Failed to load doq.js', e));",
+            WebKit2.UserContentInjectedFrames.TOP_FRAME,
+            WebKit2.UserScriptInjectionTime.END,
+            None, None
+        )
+        self.webview.get_user_content_manager().add_script(doq_inject_script)
+
+        # Connect load-changed to open the PDF safely after the viewer initializes
+        self.webview.connect("load-changed", self.on_load_changed)
+        self.current_pdf_path = pdf_path
         
         # We can inject CSS to hide the ugly web PDF.js toolbar to make it look completely native!
         hide_toolbar_script = WebKit2.UserScript(
@@ -102,14 +115,21 @@ class DoqmentViewer(Gtk.ApplicationWindow):
         self.load_pdf(pdf_path)
 
     def load_pdf(self, pdf_path):
+        self.current_pdf_path = pdf_path
         url = "file://" + os.path.abspath(self.viewer_path)
         if pdf_path:
-            url += "?file=" + urllib.parse.quote("file://" + os.path.abspath(pdf_path))
             self.header_bar.set_subtitle(os.path.basename(pdf_path))
         else:
             self.header_bar.set_subtitle("No file loaded")
             
         self.webview.load_uri(url)
+
+    def on_load_changed(self, webview, event):
+        # Open PDF via JS to bypass URL parsing/CORS issues in newer PDF.js
+        if event == WebKit2.LoadEvent.FINISHED and self.current_pdf_path:
+            safe_path = self.current_pdf_path.replace("'", "\\'")
+            js = f"if(window.PDFViewerApplication) PDFViewerApplication.open({{ url: 'file://{safe_path}' }});"
+            self.webview.run_javascript(js, None, None, None)
 
     # 3. Actions interacting with PDF.js via JS
     def on_open_clicked(self, widget):
