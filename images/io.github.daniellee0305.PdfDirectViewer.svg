@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0F2027" />
+      <stop offset="50%" stop-color="#203A43" />
+      <stop offset="100%" stop-color="#2C5364" />
+    </linearGradient>
+    <linearGradient id="doc" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#3498db" />
+      <stop offset="100%" stop-color="#2980b9" />
+    </linearGradient>
+  </defs>
+  <!-- Background with rounded corners -->
+  <rect width="128" height="128" rx="28" fill="url(#bg)" />
+  
+  <!-- Document shape -->
+  <path d="M40 24 h36 l24 24 v56 a8 8 0 0 1 -8 8 h-52 a8 8 0 0 1 -8 -8 v-72 a8 8 0 0 1 8 -8 z" fill="url(#doc)"/>
+  
+  <!-- Folded corner -->
+  <path d="M76 24 v24 h24 z" fill="#85c1e9" opacity="0.8"/>
+  
+  <!-- Eye graphic for reader mode -->
+  <path d="M48 64 q16 -20 32 0 q-16 20 -32 0" fill="none" stroke="#ffffff" stroke-width="6" stroke-linecap="round"/>
+  <circle cx="64" cy="64" r="8" fill="#ffffff" />
+</svg>

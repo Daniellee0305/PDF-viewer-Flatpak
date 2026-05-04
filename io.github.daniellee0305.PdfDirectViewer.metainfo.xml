@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.daniellee0305.PdfDirectViewer</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+  <name>PDF Direct Viewer</name>
+  <summary>A modern, eye-friendly PDF Viewer for the Linux desktop</summary>
+  <description>
+    <p>
+      PDF Direct Viewer is a standalone desktop PDF viewer that focuses on reading comfort. It features a built-in Reader Mode that allows you to change the PDF's background and text colors to reduce eye strain, especially useful for reading at night.
+    </p>
+    <p>
+      Developed by Daniel Lee, this application seamlessly wraps Mozilla's HTML5 PDF.js engine in a native GTK interface. The core reader-mode theme logic is based on the excellent open-source work by Shiva Prasad (doqment).
+    </p>
+  </description>
+  <developer id="io.github.daniellee0305">
+    <name>Daniel Lee</name>
+  </developer>
+  <url type="homepage">https://github.com/Daniellee0305/PDF-direct-viewer</url>
+  <url type="bugtracker">https://github.com/Daniellee0305/PDF-direct-viewer/issues</url>
+  <launchable type="desktop-id">io.github.daniellee0305.PdfDirectViewer.desktop</launchable>
+  <provides>
+    <binary>pdf-direct-viewer-app.py</binary>
+  </provides>
+</component>

@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Name=PDF Direct Viewer
+Comment=A modern, eye-friendly PDF Viewer by Daniel Lee
+Exec=pdf-direct-viewer-app.py %f
+Icon=io.github.daniellee0305.PdfDirectViewer
+Terminal=false
+Type=Application
+Categories=Office;Viewer;
+MimeType=application/pdf;
