@@ -125,18 +125,29 @@ class DoqmentViewer(Gtk.ApplicationWindow):
         self.webview.load_uri(url)
 
     def on_load_changed(self, webview, event):
-        # Open PDF via JS to bypass URL parsing/CORS issues in newer PDF.js
+        # Read the PDF directly in Python to bypass ALL WebKit and PDF.js local file/CORS security blocks
         if event == WebKit2.LoadEvent.FINISHED and self.current_pdf_path:
-            import urllib.parse
-            encoded_path = urllib.parse.quote(os.path.abspath(self.current_pdf_path))
-            js = f"""
-            setTimeout(function() {{
-                if(window.PDFViewerApplication) {{
-                    PDFViewerApplication.open({{ url: 'file://{encoded_path}' }});
-                }}
-            }}, 500);
-            """
-            self.webview.run_javascript(js, None, None, None)
+            import base64
+            try:
+                with open(self.current_pdf_path, "rb") as f:
+                    pdf_b64 = base64.b64encode(f.read()).decode('ascii')
+                
+                # Pass the raw PDF binary data directly into memory
+                js = f"""
+                setTimeout(function() {{
+                    if(window.PDFViewerApplication) {{
+                        var pdfData = atob('{pdf_b64}');
+                        var uint8Array = new Uint8Array(pdfData.length);
+                        for (var i = 0; i < pdfData.length; i++) {{
+                            uint8Array[i] = pdfData.charCodeAt(i);
+                        }}
+                        PDFViewerApplication.open(uint8Array);
+                    }}
+                }}, 500);
+                """
+                self.webview.run_javascript(js, None, None, None)
+            except Exception as e:
+                print("Failed to read or load PDF data:", e)
 
     # 3. Actions interacting with PDF.js via JS
     def on_open_clicked(self, widget):
