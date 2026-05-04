@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Name=Doqment
+Comment=Mozilla's HTML5 PDF Viewer with Reader-mode add-on
+Exec=doqment-app.py %f
+Icon=io.github.daniel.doqment
+Terminal=false
+Type=Application
+Categories=Office;Viewer;
+MimeType=application/pdf;
