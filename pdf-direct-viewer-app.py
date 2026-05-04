@@ -5,32 +5,110 @@ import urllib.parse
 import gi
 
 gi.require_version('Gtk', '3.0')
-gi.require_version('WebKit2', '4.1') # Using 4.1 for modern GNOME runtimes
-from gi.repository import Gtk, WebKit2, GLib, Gio, Pango, Gdk
-import threading
-import http.server
-import socketserver
+gi.require_version('Poppler', '0.18')
+from gi.repository import Gtk, Gdk, GLib, Gio, Pango, Poppler
+import cairo
 
-# A simple local HTTP server to serve the viewer and PDF files, completely bypassing CORS and file:// restrictions
-class LocalFileServer(http.server.SimpleHTTPRequestHandler):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, directory='/', **kwargs)
-    def log_message(self, format, *args):
-        pass # Suppress logs
+class PdfTab(Gtk.ScrolledWindow):
+    def __init__(self, pdf_path):
+        super().__init__()
+        self.pdf_path = pdf_path
+        self.current_page_idx = 0
+        self.zoom = 1.0
+        self.dark_mode = False
+        
+        self.document = None
+        if pdf_path and os.path.exists(pdf_path):
+            uri = "file://" + urllib.parse.quote(os.path.abspath(pdf_path))
+            try:
+                self.document = Poppler.Document.new_from_file(uri, None)
+            except GLib.Error as e:
+                print(f"Failed to load PDF: {e}")
+                
+        self.drawing_area = Gtk.DrawingArea()
+        self.drawing_area.connect("draw", self.on_draw)
+        
+        # Add a viewport to enable scrolling for the DrawingArea
+        self.viewport = Gtk.Viewport()
+        self.viewport.add(self.drawing_area)
+        self.add(self.viewport)
+        self.update_size()
 
-httpd = socketserver.TCPServer(("127.0.0.1", 0), LocalFileServer)
-LOCAL_PORT = httpd.server_address[1]
-threading.Thread(target=httpd.serve_forever, daemon=True).start()
+    def update_size(self):
+        if not self.document:
+            self.drawing_area.set_size_request(800, 600)
+            return
+            
+        page = self.document.get_page(self.current_page_idx)
+        width, height = page.get_size()
+        self.drawing_area.set_size_request(int(width * self.zoom), int(height * self.zoom))
+        self.drawing_area.queue_draw()
 
-class DoqmentViewer(Gtk.ApplicationWindow):
+    def on_draw(self, widget, cr):
+        if not self.document:
+            cr.set_source_rgb(0.9, 0.9, 0.9)
+            cr.paint()
+            return
+
+        page = self.document.get_page(self.current_page_idx)
+        width, height = page.get_size()
+
+        cr.scale(self.zoom, self.zoom)
+
+        if self.dark_mode:
+            # Draw white background first
+            cr.set_source_rgb(1.0, 1.0, 1.0)
+            cr.rectangle(0, 0, width, height)
+            cr.fill()
+            
+            # Render PDF on top of white
+            page.render(cr)
+            
+            # Invert colors for dark mode using Cairo DIFFERENCE
+            cr.set_operator(cairo.Operator.DIFFERENCE)
+            cr.set_source_rgb(1.0, 1.0, 1.0)
+            cr.rectangle(0, 0, width, height)
+            cr.fill()
+        else:
+            # Draw white background
+            cr.set_source_rgb(1.0, 1.0, 1.0)
+            cr.rectangle(0, 0, width, height)
+            cr.fill()
+            # Render PDF normally
+            page.render(cr)
+
+    def next_page(self):
+        if self.document and self.current_page_idx < self.document.get_n_pages() - 1:
+            self.current_page_idx += 1
+            self.update_size()
+
+    def prev_page(self):
+        if self.document and self.current_page_idx > 0:
+            self.current_page_idx -= 1
+            self.update_size()
+
+    def zoom_in(self):
+        self.zoom *= 1.2
+        self.update_size()
+
+    def zoom_out(self):
+        self.zoom /= 1.2
+        self.update_size()
+
+    def toggle_theme(self):
+        self.dark_mode = not self.dark_mode
+        self.drawing_area.queue_draw()
+
+
+class PdfDirectViewer(Gtk.ApplicationWindow):
     def __init__(self, app, pdf_path=None):
-        super().__init__(application=app, title="Doqment")
+        super().__init__(application=app, title="PDF Direct Viewer")
         self.set_default_size(1024, 768)
 
         # 1. Design the Interface - Native GTK HeaderBar
         self.header_bar = Gtk.HeaderBar()
         self.header_bar.set_show_close_button(True)
-        self.header_bar.set_title("Doqment PDF Viewer")
+        self.header_bar.set_title("PDF Direct Viewer")
         self.set_titlebar(self.header_bar)
 
         # Open Button
@@ -38,12 +116,6 @@ class DoqmentViewer(Gtk.ApplicationWindow):
         open_button.set_tooltip_text("Open PDF Document in New Tab")
         open_button.connect("clicked", self.on_open_clicked)
         self.header_bar.pack_start(open_button)
-
-        # Sidebar Toggle Button
-        sidebar_button = Gtk.Button.new_from_icon_name("view-sidebar-symbolic", Gtk.IconSize.BUTTON)
-        sidebar_button.set_tooltip_text("Toggle Sidebar")
-        sidebar_button.connect("clicked", self.on_sidebar_toggle)
-        self.header_bar.pack_start(sidebar_button)
 
         # Pagination Controls
         page_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=0)
@@ -70,11 +142,6 @@ class DoqmentViewer(Gtk.ApplicationWindow):
         zoom_out_btn.connect("clicked", self.on_zoom_out)
         zoom_box.add(zoom_out_btn)
 
-        zoom_fit_btn = Gtk.Button.new_from_icon_name("zoom-fit-best-symbolic", Gtk.IconSize.BUTTON)
-        zoom_fit_btn.set_tooltip_text("Adaptive Scaling (Fit Width)")
-        zoom_fit_btn.connect("clicked", self.on_zoom_fit)
-        zoom_box.add(zoom_fit_btn)
-
         zoom_in_btn = Gtk.Button.new_from_icon_name("zoom-in-symbolic", Gtk.IconSize.BUTTON)
         zoom_in_btn.set_tooltip_text("Zoom In")
         zoom_in_btn.connect("clicked", self.on_zoom_in)
@@ -88,23 +155,15 @@ class DoqmentViewer(Gtk.ApplicationWindow):
         theme_btn.connect("clicked", self.on_theme_toggle)
         self.header_bar.pack_end(theme_btn)
 
-        # 2. Setup Notebook (Tabs - Firefox Style)
+        # 2. Setup Notebook (Tabs)
         self.notebook = Gtk.Notebook()
         self.notebook.set_scrollable(True)
         self.notebook.connect("switch-page", self.on_tab_switched)
         self.add(self.notebook)
 
-        self.base_dir = os.path.dirname(os.path.realpath(__file__))
-        viewer_local_path = os.path.join(self.base_dir, 'doqment', 'src', 'pdfjs', 'web', 'viewer.html')
-        if not os.path.exists(viewer_local_path):
-            viewer_local_path = os.path.join(os.path.dirname(self.base_dir), 'share', 'doqment', 'src', 'pdfjs', 'web', 'viewer.html')
-            
-        self.viewer_url = f"http://127.0.0.1:{LOCAL_PORT}" + os.path.abspath(viewer_local_path)
-
         if pdf_path:
             self.add_tab(pdf_path)
         else:
-            # If launched without a file, just open an empty tab
             self.add_tab(None)
 
         # Drag and Drop support
@@ -120,38 +179,15 @@ class DoqmentViewer(Gtk.ApplicationWindow):
                 self.add_tab(pdf_path)
         Gtk.drag_finish(drag_context, True, False, time)
 
-    def get_current_webview(self):
+    def get_current_tab(self):
         page_num = self.notebook.get_current_page()
         if page_num >= 0:
             return self.notebook.get_nth_page(page_num)
         return None
 
     def add_tab(self, pdf_path):
-        webview = WebKit2.WebView()
-        webview.pdf_path = pdf_path # Attach custom property to store the path
-
-        settings = webview.get_settings()
-        settings.set_allow_file_access_from_file_urls(True)
-        settings.set_allow_universal_access_from_file_urls(True)
-        settings.set_enable_developer_extras(True)
+        tab = PdfTab(pdf_path)
         
-        doq_inject_script = WebKit2.UserScript(
-            f"import('http://127.0.0.1:{LOCAL_PORT}/app/share/doqment/src/doq/addon/doq.js').catch(e => console.error('Failed to load doq.js', e));",
-            WebKit2.UserContentInjectedFrames.TOP_FRAME,
-            WebKit2.UserScriptInjectionTime.END,
-            None, None
-        )
-        webview.get_user_content_manager().add_script(doq_inject_script)
-
-        hide_toolbar_script = WebKit2.UserScript(
-            "document.head.insertAdjacentHTML('beforeend', '<style>#toolbarContainer { display: none !important; } #viewerContainer { top: 0 !important; }</style>');",
-            WebKit2.UserContentInjectedFrames.ALL_FRAMES,
-            WebKit2.UserScriptInjectionTime.END,
-            None, None
-        )
-        webview.get_user_content_manager().add_script(hide_toolbar_script)
-
-        # Build Tab Label & Close Button
         tab_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=5)
         title = os.path.basename(pdf_path) if pdf_path else "New Document"
         
@@ -162,41 +198,30 @@ class DoqmentViewer(Gtk.ApplicationWindow):
 
         close_btn = Gtk.Button.new_from_icon_name("window-close-symbolic", Gtk.IconSize.MENU)
         close_btn.set_relief(Gtk.ReliefStyle.NONE)
-        close_btn.connect("clicked", self.on_close_tab, webview)
+        close_btn.connect("clicked", self.on_close_tab, tab)
         tab_box.pack_end(close_btn, False, False, 0)
         
         tab_box.show_all()
-
-        # Load Document
-        url = self.viewer_url
-        if pdf_path:
-            pdf_url = f"http://127.0.0.1:{LOCAL_PORT}" + urllib.parse.quote(os.path.abspath(pdf_path))
-            url += "?file=" + urllib.parse.quote(pdf_url)
-            
-        webview.load_uri(url)
-        webview.show_all()
+        tab.show_all()
         
-        # Add to notebook and focus it
-        page_num = self.notebook.append_page(webview, tab_box)
+        page_num = self.notebook.append_page(tab, tab_box)
         self.notebook.set_current_page(page_num)
 
-    def on_close_tab(self, button, webview):
-        page_num = self.notebook.page_num(webview)
+    def on_close_tab(self, button, tab):
+        page_num = self.notebook.page_num(tab)
         if page_num >= 0:
             self.notebook.remove_page(page_num)
-            webview.destroy()
-        # Close the whole app if the last tab is closed
+            tab.destroy()
         if self.notebook.get_n_pages() == 0:
             self.close()
 
     def on_tab_switched(self, notebook, page, page_num):
-        webview = notebook.get_nth_page(page_num)
-        if webview and webview.pdf_path:
-            self.header_bar.set_subtitle(os.path.basename(webview.pdf_path))
+        tab = notebook.get_nth_page(page_num)
+        if tab and tab.pdf_path:
+            self.header_bar.set_subtitle(os.path.basename(tab.pdf_path))
         else:
             self.header_bar.set_subtitle("No file loaded")
 
-    # 3. Actions interacting with PDF.js via JS
     def on_open_clicked(self, widget):
         dialog = Gtk.FileChooserNative.new("Open PDF Document", self, Gtk.FileChooserAction.OPEN, "_Open", "_Cancel")
         filter_pdf = Gtk.FileFilter()
@@ -204,8 +229,6 @@ class DoqmentViewer(Gtk.ApplicationWindow):
         filter_pdf.add_mime_type("application/pdf")
         dialog.add_filter(filter_pdf)
         
-        # In Flatpak, dialog.run() can crash due to nested main loops with XDG Desktop Portal.
-        # We must use asynchronous show() and connect to the response signal.
         dialog.connect("response", self.on_file_chooser_response)
         dialog.show()
 
@@ -215,62 +238,45 @@ class DoqmentViewer(Gtk.ApplicationWindow):
         dialog.destroy()
 
     def on_zoom_in(self, widget):
-        wv = self.get_current_webview()
-        if wv: wv.run_javascript("if(window.PDFViewerApplication) PDFViewerApplication.zoomIn();", None, None, None)
+        tab = self.get_current_tab()
+        if tab: tab.zoom_in()
 
     def on_zoom_out(self, widget):
-        wv = self.get_current_webview()
-        if wv: wv.run_javascript("if(window.PDFViewerApplication) PDFViewerApplication.zoomOut();", None, None, None)
-
-    def on_zoom_fit(self, widget):
-        wv = self.get_current_webview()
-        if wv: wv.run_javascript("if(window.PDFViewerApplication) PDFViewerApplication.pdfViewer.currentScaleValue = 'page-width';", None, None, None)
-
-    def on_sidebar_toggle(self, widget):
-        wv = self.get_current_webview()
-        if wv: wv.run_javascript("if(window.PDFViewerApplication) PDFViewerApplication.pdfSidebar.toggle();", None, None, None)
+        tab = self.get_current_tab()
+        if tab: tab.zoom_out()
 
     def on_prev_page(self, widget):
-        wv = self.get_current_webview()
-        if wv: wv.run_javascript("if(window.PDFViewerApplication) PDFViewerApplication.pdfViewer.previousPage();", None, None, None)
+        tab = self.get_current_tab()
+        if tab: tab.prev_page()
 
     def on_next_page(self, widget):
-        wv = self.get_current_webview()
-        if wv: wv.run_javascript("if(window.PDFViewerApplication) PDFViewerApplication.pdfViewer.nextPage();", None, None, None)
+        tab = self.get_current_tab()
+        if tab: tab.next_page()
 
     def on_theme_toggle(self, widget):
-        wv = self.get_current_webview()
-        if wv:
-            js = """
-            var radios = Array.from(document.querySelectorAll('#tonePicker input[type="radio"]'));
-            if (radios.length > 0) {
-                var idx = radios.findIndex(r => r.checked);
-                var nextIdx = (idx + 1) % radios.length;
-                radios[nextIdx].click();
-            }
-            """
-            wv.run_javascript(js, None, None, None)
+        tab = self.get_current_tab()
+        if tab: tab.toggle_theme()
 
-class DoqmentApp(Gtk.Application):
+class PdfDirectApp(Gtk.Application):
     def __init__(self):
         super().__init__(application_id="io.github.daniellee0305.PdfDirectViewer", flags=Gio.ApplicationFlags.HANDLES_OPEN)
         self.window = None
 
     def do_activate(self):
         if not self.window:
-            self.window = DoqmentViewer(self)
+            self.window = PdfDirectViewer(self)
         self.window.show_all()
         self.window.present()
 
     def do_open(self, files, n_files, hint):
         if not self.window:
-            self.window = DoqmentViewer(self, files[0].get_path())
+            self.window = PdfDirectViewer(self, files[0].get_path())
         else:
             self.window.add_tab(files[0].get_path())
         self.window.show_all()
         self.window.present()
 
 if __name__ == "__main__":
-    app = DoqmentApp()
+    app = PdfDirectApp()
     exit_status = app.run(sys.argv)
     sys.exit(exit_status)
