@@ -204,7 +204,12 @@ class DoqmentViewer(Gtk.ApplicationWindow):
         filter_pdf.add_mime_type("application/pdf")
         dialog.add_filter(filter_pdf)
         
-        response = dialog.run()
+        # In Flatpak, dialog.run() can crash due to nested main loops with XDG Desktop Portal.
+        # We must use asynchronous show() and connect to the response signal.
+        dialog.connect("response", self.on_file_chooser_response)
+        dialog.show()
+
+    def on_file_chooser_response(self, dialog, response):
         if response == Gtk.ResponseType.ACCEPT:
             self.add_tab(dialog.get_filename())
         dialog.destroy()
