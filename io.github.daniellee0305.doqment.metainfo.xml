@@ -7,7 +7,7 @@
   <summary>PDF Viewer with Reader-mode</summary>
   <description>
     <p>
-      Doqment is Mozilla's HTML5 PDF Viewer with a Reader-mode add-on. It provides a lightweight and fast way to view PDF files with enhanced reading features.
+    It provides a lightweight and fast way to view PDF files with enhanced reading features.
     </p>
     <p>
       Packaged as a Flatpak by Daniel. Based on the open-source doqment repository by the original author, Shiva Prasad (https://github.com/shivaprsd/doqment).

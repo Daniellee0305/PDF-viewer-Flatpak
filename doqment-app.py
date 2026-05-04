@@ -25,6 +25,28 @@ class DoqmentViewer(Gtk.ApplicationWindow):
         open_button.connect("clicked", self.on_open_clicked)
         self.header_bar.pack_start(open_button)
 
+        # Sidebar Toggle Button
+        sidebar_button = Gtk.Button.new_from_icon_name("view-sidebar-symbolic", Gtk.IconSize.BUTTON)
+        sidebar_button.set_tooltip_text("Toggle Sidebar")
+        sidebar_button.connect("clicked", self.on_sidebar_toggle)
+        self.header_bar.pack_start(sidebar_button)
+
+        # Pagination Controls
+        page_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=0)
+        Gtk.StyleContext.add_class(page_box.get_style_context(), "linked")
+        
+        prev_btn = Gtk.Button.new_from_icon_name("go-previous-symbolic", Gtk.IconSize.BUTTON)
+        prev_btn.set_tooltip_text("Previous Page")
+        prev_btn.connect("clicked", self.on_prev_page)
+        page_box.add(prev_btn)
+        
+        next_btn = Gtk.Button.new_from_icon_name("go-next-symbolic", Gtk.IconSize.BUTTON)
+        next_btn.set_tooltip_text("Next Page")
+        next_btn.connect("clicked", self.on_next_page)
+        page_box.add(next_btn)
+        
+        self.header_bar.pack_start(page_box)
+
         # Zoom Controls
         zoom_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=0)
         Gtk.StyleContext.add_class(zoom_box.get_style_context(), "linked")
@@ -45,6 +67,12 @@ class DoqmentViewer(Gtk.ApplicationWindow):
         zoom_box.add(zoom_in_btn)
         
         self.header_bar.pack_end(zoom_box)
+
+        # Theme Toggle
+        theme_btn = Gtk.Button.new_from_icon_name("weather-clear-night-symbolic", Gtk.IconSize.BUTTON)
+        theme_btn.set_tooltip_text("Toggle Reader Theme")
+        theme_btn.connect("clicked", self.on_theme_toggle)
+        self.header_bar.pack_end(theme_btn)
 
         # 2. Setup WebKit Webview
         self.webview = WebKit2.WebView()
@@ -105,6 +133,27 @@ class DoqmentViewer(Gtk.ApplicationWindow):
     def on_zoom_fit(self, widget):
         # Adaptive scaling: Fit Width
         self.webview.run_javascript("if(window.PDFViewerApplication) PDFViewerApplication.pdfViewer.currentScaleValue = 'page-width';", None, None, None)
+
+    def on_sidebar_toggle(self, widget):
+        self.webview.run_javascript("if(window.PDFViewerApplication) PDFViewerApplication.pdfSidebar.toggle();", None, None, None)
+
+    def on_prev_page(self, widget):
+        self.webview.run_javascript("if(window.PDFViewerApplication) PDFViewerApplication.pdfViewer.previousPage();", None, None, None)
+
+    def on_next_page(self, widget):
+        self.webview.run_javascript("if(window.PDFViewerApplication) PDFViewerApplication.pdfViewer.nextPage();", None, None, None)
+
+    def on_theme_toggle(self, widget):
+        # Cycle through available doqment themes via the hidden radio buttons
+        js = """
+        var radios = Array.from(document.querySelectorAll('#tonePicker input[type="radio"]'));
+        if (radios.length > 0) {
+            var idx = radios.findIndex(r => r.checked);
+            var nextIdx = (idx + 1) % radios.length;
+            radios[nextIdx].click();
+        }
+        """
+        self.webview.run_javascript(js, None, None, None)
 
 class DoqmentApp(Gtk.Application):
     def __init__(self):
